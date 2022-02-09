@@ -1,0 +1,156 @@
+project_name: shhh
+
+before:
+  hooks:
+    - go mod download
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 6
+      - 7
+    main: ./cmd/shhh
+    binary: shhh
+    ignore:
+      - goos: freebsd
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/fernandezvara/shhh/cmd/shhh/main.Version={{.Version}}
+      - -X github.com/fernandezvara/shhh/cmd/shhh/main.FullCommit={{.FullCommit}}
+      - -X github.com/fernandezvara/shhh/cmd/shhh/main.GitURL={{.GitURL}}
+
+
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+dockers:
+  - image_templates:
+      - ghcr.io/fernandezvara/shhh:{{ .Tag }}-amd64
+    dockerfile: Dockerfile
+    goarch: amd64
+    use_buildx: true
+    build_flag_templates:
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+      - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --platform=linux/amd64
+      - --build-arg=ARCH=amd64
+  - image_templates:
+      - ghcr.io/fernandezvara/shhh:{{ .Tag }}-arm64
+    dockerfile: Dockerfile
+    goarch: arm64
+    use_buildx: true
+    build_flag_templates:
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+      - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --platform=linux/arm64
+      - --build-arg=ARCH=arm64
+
+docker_manifests:
+  - name_template: ghcr.io/fernandezvara/shhh:{{ .Tag }}
+    image_templates:
+      - ghcr.io/fernandezvara/shhh:{{ .Tag }}-amd64
+      - ghcr.io/fernandezvara/shhh:{{ .Tag }}-arm64
+  - name_template: ghcr.io/fernandezvara/shhh:latest
+    image_templates:
+      - ghcr.io/fernandezvara/shhh:{{ .Tag }}-amd64
+      - ghcr.io/fernandezvara/shhh:{{ .Tag }}-arm64
+
+# nfpms:
+#   - file_name_template: "{{ .ProjectName }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+#     homepage: https://www.certsfor.dev/
+#     description: Easy certificate management for development environments
+#     maintainer: Antonio Fernández Vara <antoniofernandezvara+shhh@gmail.com>
+#     license: MIT
+#     vendor: fernandezvara
+#     formats:
+#       - apk
+#       - deb
+#       - rpm
+#     recommends:
+#       - golang
+
+# scoop:
+#   bucket:
+#     owner: backd-io
+#     name: scoop-bucket
+#   homepage: https://www.certsfor.dev/
+#   description: Easy certificate management for development environments
+#   license: MIT
+#   commit_author:
+#     name: fernandezvara
+#     email: antoniofernandezvara@gmail.com
+#   commit_msg_template: "Scoop update - {{ .ProjectName }} - version: {{ .Tag }}"
+
+# brews:
+#   - tap:
+#       owner: backd-io
+#       name: homebrew-tap
+#     folder: Formula
+#     homepage: https://www.certsfor.dev/
+#     description: Easy certificate management for development environments
+#     license: MIT
+#     commit_author:
+#       name: fernandezvara
+#       email: antoniofernandezvara@gmail.com
+#     test: |
+#       system "#{bin}/shhh -h"
+#     install:
+#       bin.install "shhh"
+
+release:
+  github:
+    owner: fernandezvara
+    name: shhh
+  draft: false
+  name_template: "{{.ProjectName}}-v{{.Version}}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^test"
+      - "^ci"
+      - Merge pull request
+      - Merge branch
+      - go mod tidy
